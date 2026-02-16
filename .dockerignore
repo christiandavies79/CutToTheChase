@@ -1,0 +1,13 @@
+node_modules
+__pycache__
+*.pyc
+.git
+.gitignore
+.venv
+venv
+.env
+*.md
+.vscode
+.idea
+.DS_Store
+frontend/dist
