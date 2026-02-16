@@ -1,92 +1,215 @@
-1. Project Overview
-The application is a web-based video trimming tool focused on removing unwanted sections from videos (beginning, end, or middle) while preserving the original format, resolution, codec, and quality. Edits involve segment-based removal, with users visually marking sections for deletion. No changes are committed until the user selects “Save” or “Save As.” The tool prioritizes efficiency for videos ranging from short (≤10 minutes) to long (4–5 hours).
-The application runs in a Docker container with optional NVIDIA GPU passthrough for acceleration. It includes a file-browser interface for selecting videos from mounted media directories and features a modern, dark-themed user interface optimized for low-light viewing.
-2. Core Functional Requirements
-2.1 Video Loading and Navigation
+# CutToTheChase
 
-File explorer interface for browsing mounted directories (e.g., /media).
-Support for common containers (MP4, MKV, AVI, MOV, WebM, etc.) via FFmpeg.
-Efficient streaming and thumbnail/waveform generation to handle short and long videos responsively.
-Reject files exceeding 10 GB with a clear error message; provide graceful handling for other edge cases (e.g., unsupported formats, corrupted files).
+A web-based video trimming tool for removing unwanted sections from videos while preserving original format, resolution, codec, and quality. Runs in a Docker container with optional NVIDIA GPU acceleration.
 
-2.2 Visual Editing Interface
+## Features
 
-Embedded video player with frame-accurate seeking and playback controls.
-Audio waveform display below the timeline to aid in identifying sections.
-Zoomable timeline supporting multiple non-overlapping range selections for removal.
-Visual differentiation: retained sections in solid color; removed sections faded or marked.
-Real-time playback that automatically skips removed sections (no temporary file generation).
+- **File Browser** — Navigate mounted media directories to select videos
+- **Visual Timeline Editor** — Zoomable timeline with drag-to-select removal ranges
+- **Audio Waveform** — Visual waveform display to help identify sections
+- **Frame-Accurate Seeking** — Navigate frame-by-frame with keyboard shortcuts
+- **Dual Cutting Modes** — Lossless (keyframe-only, default) or frame-accurate (minimal re-encoding)
+- **Non-Destructive Editing** — Preview changes in real-time; nothing saved until you choose to
+- **Undo/Redo** — Full undo/redo support for all range operations
+- **GPU Acceleration** — Optional NVIDIA GPU passthrough for faster re-encoding
+- **Dark Theme** — Modern dark UI optimized for low-light viewing
 
-2.3 Edit Management
+## Supported Formats
 
-Add, resize, move, or delete removal ranges via mouse drag or keyboard shortcuts.
-Undo/redo for range operations during the session.
-All audio tracks and subtitles preserved exactly as in the source file.
+MP4, MKV, AVI, MOV, WebM, WMV, FLV, M4V, MPG, MPEG, TS, VOB, 3GP, OGV (via FFmpeg)
 
-2.4 Cutting Mode Selection
+## Quick Start
 
-User-configurable option: “Lossless (keyframe-only)” or “Frame-accurate (minimal re-encoding).”
-Default: Lossless (keyframe-only) using -c copy for true preservation.
-Frame-accurate mode: re-encode only affected segments when cuts fall between keyframes, with a clear warning about potential minor quality impact.
+### Docker Run
 
-Preference stored (e.g., via browser local storage) and applied across sessions.
+```bash
+docker run -d \
+  --name cuttothechase \
+  -p 8080:8080 \
+  -v /path/to/your/media:/media \
+  dpooper79/cuttothechase:latest
+```
 
-2.5 Saving
+Then open `http://localhost:8080` in your browser.
 
-“Save”: overwrite original after confirmation.
-“Save As”: prompt for new filename/location.
-Processing via FFmpeg with stream copy where possible; concatenate retained segments.
-Progress indicator with cancellation support.
-No undo available after save completion.
-Preserve original metadata (creation date, chapters, etc.) where feasible.
+### Docker Compose
 
-3. Non-Functional Requirements
-3.1 Performance
+1. Edit `docker-compose.yml` and set your media volume path:
+   ```yaml
+   volumes:
+     - /path/to/your/media:/media
+   ```
 
-Stream-based processing to limit memory usage.
-GPU acceleration (NVIDIA) for decoding/encoding when re-encoding is required.
-Responsive UI for multi-hour videos through efficient waveform/thumbnail caching.
+2. Start the container:
+   ```bash
+   docker-compose up -d
+   ```
 
-3.2 Deployment
+### With NVIDIA GPU Acceleration
 
-Single Docker container with static FFmpeg build.
-Configurable media mount (e.g., -v /path/to/media:/media).
-Support for NVIDIA runtime on Unraid.
-Exposed web port (configurable, default 8080).
-Comprehensive logging of FFmpeg output, application events, and errors to container logs for debugging.
+For systems with NVIDIA GPUs and [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed:
 
-3.3 Security and Reliability
+```bash
+docker run -d \
+  --name cuttothechase \
+  --runtime=nvidia \
+  -e NVIDIA_VISIBLE_DEVICES=all \
+  -e NVIDIA_DRIVER_CAPABILITIES=compute,video,utility \
+  -p 8080:8080 \
+  -v /path/to/your/media:/media \
+  dpooper79/cuttothechase:latest
+```
 
-Local-only operation; access restricted to mounted volumes.
-Robust error handling (e.g., file size limits, format issues, processing interruptions).
-Browser compatibility prioritized for Chromium-based browsers (Chrome, Edge).
+Or via Docker Compose with the GPU profile:
+```bash
+docker-compose --profile gpu up -d
+```
 
-4. User Interface and Experience
+### Unraid Setup
 
-Dark modern theme (deep gray/black background, subtle blue/teal accents, high-contrast text).
-Layout:
-File browser panel (left or top).
-Central video player and waveform.
-Bottom editable timeline with range markers.
-Toolbar for actions (including cutting mode checkbox, undo/redo, save buttons).
+1. Install the **Nvidia-Driver** plugin from Community Applications
+2. Add the container from Docker Hub: `dpooper79/cuttothechase`
+3. Configure:
+   - **Port**: 8080 → 8080
+   - **Volume**: `/mnt/user/your-media` → `/media`
+   - **Extra Parameters**: `--runtime=nvidia`
+   - **Environment Variables**:
+     - `NVIDIA_VISIBLE_DEVICES=all`
+     - `NVIDIA_DRIVER_CAPABILITIES=compute,video,utility`
 
-Keyboard shortcuts for efficiency (e.g., I/O for markers, Delete for range removal).
-Clear, non-intrusive warnings and confirmations (e.g., overwrite, frame-accurate mode).
+## Usage
 
-5. Technical Architecture (High-Level)
+### Basic Workflow
 
-Frontend: React or Svelte; video.js/Plyr for playback; wavesurfer.js for waveform.
-Backend: Node.js (Express) or Python (FastAPI) for file operations, FFmpeg execution, and WebSocket progress updates.
-Processing: FFmpeg with fluent-ffmpeg/subprocess wrapper.
-Container: Multi-stage Dockerfile including NVIDIA support.
+1. **Browse** — Use the left panel to navigate to your video files
+2. **Select** — Click a video file to load it in the editor
+3. **Mark Ranges** — Drag on the timeline to mark sections for removal, or use I/O keys
+4. **Preview** — Play the video; removed sections are automatically skipped
+5. **Save** — Click "Save" (overwrite) or "Save As" (new file) when satisfied
 
-6. Resolved Considerations
-The following points from the previous draft have been incorporated or confirmed:
+### Keyboard Shortcuts
 
-Lossless vs. frame-accurate cutting: Implemented as user-selectable option with persistent preference.
-Preview: Real-time skipping during playback is sufficient; no rendered preview required.
-Audio/multi-track: All audio tracks and subtitles preserved unchanged.
-File size limits: 10 GB maximum enforced with error handling.
-Post-save undo: Explicitly not supported.
-Browser support: Optimized for Chromium-based browsers.
-Logging: Directed to container logs.
+| Key | Action |
+|-----|--------|
+| `Space` / `K` | Play / Pause |
+| `J` | Skip back 10 seconds |
+| `L` | Skip forward 10 seconds |
+| `Left Arrow` | Skip back 5 seconds |
+| `Right Arrow` | Skip forward 5 seconds |
+| `Shift + Left` | Previous frame |
+| `Shift + Right` | Next frame |
+| `I` | Set mark-in point |
+| `O` | Set mark-out point (creates removal range) |
+| `Delete` / `Backspace` | Delete selected range |
+| `Ctrl + Z` | Undo |
+| `Ctrl + Shift + Z` / `Ctrl + Y` | Redo |
+| `Ctrl + Scroll` | Zoom timeline |
+
+### Cutting Modes
+
+- **Lossless (default)** — Uses stream copy (`-c copy`). Cuts are aligned to the nearest keyframe. Fastest option with zero quality loss.
+- **Frame-accurate** — Re-encodes only the segments at cut points for precise cutting. Slightly slower with minimal quality impact at cut boundaries. Uses NVIDIA hardware encoding when available.
+
+The cutting mode preference is saved in your browser and persists across sessions.
+
+## Architecture
+
+```
+CutToTheChase/
+├── backend/                 # Python FastAPI backend
+│   ├── app/
+│   │   ├── main.py          # FastAPI application entry point
+│   │   ├── routes/
+│   │   │   ├── files.py     # File browser API
+│   │   │   ├── video.py     # Video info, streaming, thumbnails, waveform
+│   │   │   └── processing.py# Trim processing with WebSocket progress
+│   │   ├── services/
+│   │   │   ├── ffmpeg.py    # FFmpeg wrapper for all video operations
+│   │   │   └── file_manager.py # File system operations
+│   │   └── models/
+│   │       └── schemas.py   # Pydantic models
+│   └── requirements.txt
+├── frontend/                # React + TypeScript frontend
+│   ├── src/
+│   │   ├── App.tsx          # Main application layout
+│   │   ├── components/
+│   │   │   ├── FileBrowser.tsx   # File navigation panel
+│   │   │   ├── VideoPlayer.tsx   # Video playback with controls
+│   │   │   ├── Waveform.tsx      # Audio waveform visualization
+│   │   │   ├── Timeline.tsx      # Interactive editing timeline
+│   │   │   ├── Toolbar.tsx       # Action bar with mode/save controls
+│   │   │   └── SaveDialog.tsx    # Save completion dialog
+│   │   ├── stores/
+│   │   │   └── editorStore.ts    # Zustand state management
+│   │   └── types/
+│   │       └── index.ts          # TypeScript type definitions
+│   └── vite.config.ts
+├── Dockerfile               # Multi-stage build
+├── docker-compose.yml       # Compose config with GPU profile
+└── .github/workflows/
+    └── docker-publish.yml   # CI/CD pipeline
+```
+
+### Tech Stack
+
+- **Backend**: Python 3.12 with FastAPI — async HTTP/WebSocket, FFmpeg subprocess management
+- **Frontend**: React 18 with TypeScript, Vite build tool, Zustand state management
+- **Processing**: FFmpeg for all video operations (probe, thumbnail, waveform, trim)
+- **Container**: Multi-stage Docker build, Debian-based with FFmpeg
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/health` | Health check |
+| `GET` | `/api/files/browse?path=` | List directory contents |
+| `GET` | `/api/video/info?path=` | Get video metadata |
+| `GET` | `/api/video/stream?path=` | Stream video for playback |
+| `GET` | `/api/video/thumbnails?path=&count=` | Generate timeline thumbnails |
+| `GET` | `/api/video/waveform?path=&samples=` | Generate audio waveform data |
+| `GET` | `/api/video/keyframes?path=` | Get keyframe timestamps |
+| `POST` | `/api/process/trim` | Validate trim request |
+| `WS` | `/api/process/ws/trim` | WebSocket for trim with progress |
+| `POST` | `/api/process/cancel/{job_id}` | Cancel active trim job |
+
+## Configuration
+
+| Environment Variable | Default | Description |
+|---------------------|---------|-------------|
+| `MEDIA_ROOT` | `/media` | Root directory for file browsing |
+| `STATIC_DIR` | `/app/frontend/dist` | Frontend static files directory |
+
+## Constraints
+
+- Maximum file size: **10 GB**
+- Optimized for **Chromium-based browsers** (Chrome, Edge)
+- Files are restricted to the mounted media directory (path traversal prevention)
+- No undo after save completion
+
+## Development
+
+### Local Development
+
+```bash
+# Backend
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8080
+
+# Frontend (in a separate terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+### Build Docker Image
+
+```bash
+docker build -t cuttothechase .
+docker run -p 8080:8080 -v /your/media:/media cuttothechase
+```
+
+## License
+
+MIT

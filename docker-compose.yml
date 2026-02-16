@@ -1,0 +1,48 @@
+# CutToTheChase — Docker Compose configuration
+#
+# Usage:
+#   docker-compose up -d
+#
+# For NVIDIA GPU acceleration (Unraid / Linux with nvidia-container-toolkit):
+#   docker-compose --profile gpu up -d
+#
+# Mount your media directory by editing the volume path below.
+
+services:
+  cuttothechase:
+    build: .
+    image: dpooper79/cuttothechase:latest
+    container_name: cuttothechase
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount your media directory here
+      - /path/to/your/media:/media
+    environment:
+      - MEDIA_ROOT=/media
+    restart: unless-stopped
+
+  # GPU-accelerated variant (activate with --profile gpu)
+  cuttothechase-gpu:
+    build: .
+    image: dpooper79/cuttothechase:latest
+    container_name: cuttothechase-gpu
+    profiles:
+      - gpu
+    ports:
+      - "8080:8080"
+    volumes:
+      - /path/to/your/media:/media
+    environment:
+      - MEDIA_ROOT=/media
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, video]
+    restart: unless-stopped
