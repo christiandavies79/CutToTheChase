@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a1f4e"/>
+      <stop offset="100%" stop-color="#1a1333"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c5cfc"/>
+      <stop offset="100%" stop-color="#5b3fd4"/>
+    </linearGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e0e0e0"/>
+      <stop offset="100%" stop-color="#b0b0b0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect x="4" y="4" width="248" height="248" rx="40" ry="40" fill="url(#bg)"/>
+  <rect x="4" y="4" width="248" height="248" rx="40" ry="40" fill="none" stroke="#3d2d6b" stroke-width="2"/>
+
+  <!-- Film strip - left perforations -->
+  <rect x="42" y="58" width="172" height="110" rx="8" fill="none" stroke="#4a3a7a" stroke-width="3"/>
+
+  <!-- Sprocket holes top -->
+  <rect x="52" y="62" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="72" y="62" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="92" y="62" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="112" y="62" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="132" y="62" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="152" y="62" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="172" y="62" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="192" y="62" width="10" height="14" rx="2" fill="#4a3a7a"/>
+
+  <!-- Sprocket holes bottom -->
+  <rect x="52" y="150" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="72" y="150" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="92" y="150" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="112" y="150" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="132" y="150" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="152" y="150" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="172" y="150" width="10" height="14" rx="2" fill="#4a3a7a"/>
+  <rect x="192" y="150" width="10" height="14" rx="2" fill="#4a3a7a"/>
+
+  <!-- Play triangle in center of film frame -->
+  <polygon points="112,92 112,134 148,113" fill="url(#accent)"/>
+
+  <!-- Diagonal cut line across the film frame -->
+  <line x1="60" y1="155" x2="196" y2="72" stroke="#ff6b6b" stroke-width="3" stroke-dasharray="8,4" opacity="0.8"/>
+
+  <!-- Scissors -->
+  <g transform="translate(170, 72) rotate(-25)">
+    <!-- Blade 1 -->
+    <ellipse cx="-4" cy="-12" rx="5" ry="12" fill="none" stroke="url(#blade)" stroke-width="2.5"/>
+    <rect x="-6" y="-2" width="4.5" height="22" rx="1" fill="url(#blade)"/>
+
+    <!-- Blade 2 -->
+    <ellipse cx="6" cy="-12" rx="5" ry="12" fill="none" stroke="url(#blade)" stroke-width="2.5"/>
+    <rect x="3.5" y="-2" width="4.5" height="22" rx="1" fill="url(#blade)"/>
+
+    <!-- Pivot -->
+    <circle cx="1" cy="0" r="3" fill="#888"/>
+    <circle cx="1" cy="0" r="1.5" fill="#555"/>
+  </g>
+
+  <!-- "CutToTheChase" text label at bottom -->
+  <text x="128" y="206" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="20" fill="#c0b0e8" letter-spacing="1">CutToTheChase</text>
+</svg>
