@@ -9,6 +9,7 @@ import SaveDialog from "./components/SaveDialog";
 
 export default function App() {
   const videoInfo = useEditorStore((s) => s.videoInfo);
+  const isLoadingVideo = useEditorStore((s) => s.isLoadingVideo);
   const error = useEditorStore((s) => s.error);
   const setError = useEditorStore((s) => s.setError);
   const undo = useEditorStore((s) => s.undo);
@@ -76,6 +77,11 @@ export default function App() {
               <Timeline />
             </div>
           </>
+        ) : isLoadingVideo ? (
+          <div className="loading-state">
+            <div className="loading-spinner" />
+            <p>Loading video...</p>
+          </div>
         ) : (
           <div className="empty-state">
             <div className="empty-icon">
@@ -131,6 +137,28 @@ export default function App() {
           flex-shrink: 0;
           border-top: 1px solid var(--border);
           background: var(--bg-secondary);
+        }
+
+        .loading-state {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          color: var(--text-secondary);
+          font-size: 14px;
+        }
+        .loading-spinner {
+          width: 36px;
+          height: 36px;
+          border: 3px solid var(--border);
+          border-top-color: var(--accent);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
         .empty-state {
