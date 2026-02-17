@@ -3,7 +3,7 @@
  * Automatically skips over removed sections during playback.
  */
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { useEditorStore } from "../stores/editorStore";
 
 function formatTime(seconds: number): string {
@@ -30,6 +30,8 @@ export default function VideoPlayer() {
   const setIsPlaying = useEditorStore((s) => s.setIsPlaying);
   const addRange = useEditorStore((s) => s.addRange);
 
+  const [videoReady, setVideoReady] = useState(false);
+
   // Mark in/out points
   const markInRef = useRef<number | null>(null);
 
@@ -49,10 +51,16 @@ export default function VideoPlayer() {
     animRef.current = requestAnimationFrame(checkSkip);
   }, [removalRanges, setCurrentTime]);
 
+  // Reset ready state when video source changes
+  useEffect(() => {
+    setVideoReady(false);
+  }, [videoUrl]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
+    const onCanPlay = () => setVideoReady(true);
     const onPlay = () => {
       setIsPlaying(true);
       animRef.current = requestAnimationFrame(checkSkip);
@@ -64,12 +72,14 @@ export default function VideoPlayer() {
     const onSeeked = () => setCurrentTime(video.currentTime);
     const onEnded = () => setIsPlaying(false);
 
+    video.addEventListener("canplay", onCanPlay);
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
     video.addEventListener("seeked", onSeeked);
     video.addEventListener("ended", onEnded);
 
     return () => {
+      video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("seeked", onSeeked);
@@ -148,12 +158,20 @@ export default function VideoPlayer() {
 
   return (
     <div className="video-player" onKeyDown={handleKeyDown} tabIndex={0}>
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        className="video-element"
-        preload="auto"
-      />
+      <div className="video-wrapper">
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          className="video-element"
+          preload="auto"
+        />
+        {!videoReady && (
+          <div className="vp-buffering">
+            <div className="vp-buffering-spinner" />
+            <span>Buffering...</span>
+          </div>
+        )}
+      </div>
 
       {/* Controls overlay */}
       <div className="vp-controls">
@@ -226,12 +244,41 @@ export default function VideoPlayer() {
           height: 100%;
           outline: none;
         }
-        .video-element {
+        .video-wrapper {
           flex: 1;
-          width: 100%;
+          position: relative;
           min-height: 0;
+          overflow: hidden;
+        }
+        .video-element {
+          width: 100%;
+          height: 100%;
           object-fit: contain;
           background: #000;
+        }
+        .vp-buffering {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          background: rgba(0, 0, 0, 0.7);
+          color: var(--text-secondary);
+          font-size: 13px;
+          z-index: 5;
+        }
+        .vp-buffering-spinner {
+          width: 32px;
+          height: 32px;
+          border: 3px solid var(--border);
+          border-top-color: var(--accent);
+          border-radius: 50%;
+          animation: vp-spin 0.8s linear infinite;
+        }
+        @keyframes vp-spin {
+          to { transform: rotate(360deg); }
         }
         .vp-controls {
           display: flex;
