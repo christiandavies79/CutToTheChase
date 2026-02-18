@@ -8,13 +8,18 @@ import { useEditorStore } from "../stores/editorStore";
 export default function SaveDialog() {
   const trimProgress = useEditorStore((s) => s.trimProgress);
   const isTrimming = useEditorStore((s) => s.isTrimming);
+  const reloadAfterTrim = useEditorStore((s) => s.reloadAfterTrim);
 
   // Only show the completion dialog when not actively trimming and we have a result
   if (isTrimming || !trimProgress) return null;
   if (trimProgress.status !== "completed" && trimProgress.status !== "error") return null;
 
   const dismiss = () => {
-    useEditorStore.setState({ trimProgress: null });
+    if (trimProgress.status === "completed") {
+      reloadAfterTrim();
+    } else {
+      useEditorStore.setState({ trimProgress: null });
+    }
   };
 
   return (
