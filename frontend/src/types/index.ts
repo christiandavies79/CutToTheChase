@@ -88,6 +88,8 @@ export interface EditorState {
   // Processing
   trimProgress: TrimProgress | null;
   isTrimming: boolean;
+  _trimOutputPath: string | null;
+  _trimWasOverwrite: boolean;
 
   // Error
   error: string | null;

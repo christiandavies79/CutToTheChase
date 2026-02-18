@@ -61,6 +61,7 @@ interface EditorActions {
   startTrim: (outputPath: string, overwrite: boolean) => void;
   updateTrimProgress: (p: TrimProgress) => void;
   cancelTrim: () => void;
+  reloadAfterTrim: () => Promise<void>;
 
   // Error
   setError: (err: string | null) => void;
@@ -91,6 +92,8 @@ export const useEditorStore = create<Store>()((set, get) => ({
   isPlaying: false,
   trimProgress: null,
   isTrimming: false,
+  _trimOutputPath: null,
+  _trimWasOverwrite: false,
   error: null,
 
   // === File Browser ===
@@ -322,7 +325,14 @@ export const useEditorStore = create<Store>()((set, get) => ({
       const progress: TrimProgress = JSON.parse(event.data);
       set({ trimProgress: progress });
       if (progress.status === "completed" || progress.status === "error" || progress.status === "cancelled") {
-        set({ isTrimming: false });
+        set({
+          isTrimming: false,
+          // Store trim context so reloadAfterTrim knows what to do
+          ...(progress.status === "completed" ? {
+            _trimOutputPath: progress.output_path || outputPath,
+            _trimWasOverwrite: overwrite,
+          } : {}),
+        });
         ws.close();
       }
     };
@@ -348,6 +358,74 @@ export const useEditorStore = create<Store>()((set, get) => ({
       (window as any).__cttc_ws = undefined;
     }
     set({ isTrimming: false, trimProgress: null });
+  },
+
+  // === Post-Trim Reload ===
+  reloadAfterTrim: async () => {
+    const state = get();
+    const outputPath = state._trimOutputPath;
+    const wasOverwrite = state._trimWasOverwrite;
+    if (!outputPath) return;
+
+    // Clear editing state and reset playback
+    set({
+      removalRanges: [],
+      selectedRangeId: null,
+      undoStack: [],
+      redoStack: [],
+      currentTime: 0,
+      isPlaying: false,
+      trimProgress: null,
+      _trimOutputPath: null,
+      _trimWasOverwrite: false,
+      isLoadingVideo: true,
+      isLoadingWaveform: true,
+      isLoadingThumbnails: true,
+    });
+
+    try {
+      // Reload video info from the output file
+      const infoRes = await fetch(
+        `${API_BASE}/video/info?path=${encodeURIComponent(outputPath)}`
+      );
+      if (!infoRes.ok) {
+        const data = await infoRes.json();
+        throw new Error(data.detail || "Failed to reload video info.");
+      }
+      const info: VideoInfo = await infoRes.json();
+
+      // Bust browser cache with a timestamp query param
+      const cacheBuster = `&_t=${Date.now()}`;
+      const videoUrl = `${API_BASE}/video/stream?path=${encodeURIComponent(outputPath)}${cacheBuster}`;
+      set({ videoInfo: info, videoUrl, isLoadingVideo: false });
+
+      // Reload waveform in background
+      fetch(`${API_BASE}/video/waveform?path=${encodeURIComponent(outputPath)}&samples=2000`)
+        .then((r) => r.json())
+        .then((data) => set({ waveformData: data.waveform || [], isLoadingWaveform: false }))
+        .catch(() => set({ waveformData: [], isLoadingWaveform: false }));
+
+      // Reload thumbnails in background
+      const thumbCount = Math.min(Math.max(Math.floor(info.duration / 2), 20), 200);
+      fetch(
+        `${API_BASE}/video/thumbnails?path=${encodeURIComponent(outputPath)}&count=${thumbCount}`
+      )
+        .then((r) => r.json())
+        .then((data) => set({ thumbnails: data.thumbnails || [], isLoadingThumbnails: false }))
+        .catch(() => set({ thumbnails: [], isLoadingThumbnails: false }));
+
+      // Refresh file browser (new file appears for Save As, updated size for overwrite)
+      if (state.currentPath) {
+        get().browseDirectory(state.currentPath);
+      }
+    } catch (err: any) {
+      set({
+        isLoadingVideo: false,
+        isLoadingWaveform: false,
+        isLoadingThumbnails: false,
+        error: err.message,
+      });
+    }
   },
 
   // === Error ===
